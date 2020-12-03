@@ -29,9 +29,9 @@ class AdapterFactory
                     require_once 'mysqliAdapter.php';
                 }
                 return new mysqliAdapter($configuration);
-            /*
-             * PDO
-             */
+                /*
+                 * PDO
+                 */
             } elseif ('pdo' == $adapterName) {
                 // use cache?
                 if (isset($configuration['cache_enabled']) && true === $configuration['cache_enabled']) {
@@ -39,13 +39,18 @@ class AdapterFactory
                         require_once 'CachedPDOAdapter.php';
                     }
                     return new CachedPDOAdapter($configuration);
-                // no cache
+                    // no cache
                 } else {
                     if (false == class_exists('\\ARC2\\Store\\Adapter\\PDOAdapter')) {
                         require_once 'PDOAdapter.php';
                     }
                     return new PDOAdapter($configuration);
                 }
+            } elseif ('doctrine' == $adapterName) {
+                if (false == class_exists('\\ARC2\\Store\\Adapter\\DoctrineAdapter')) {
+                    require_once 'DoctrineAdapter.php';
+                }
+                return new DoctrineAdapter($configuration);
             }
         }
 
@@ -60,6 +65,6 @@ class AdapterFactory
      */
     public function getSupportedAdapters()
     {
-        return array('mysqli', 'pdo');
+        return array('mysqli', 'pdo', 'doctrine');
     }
 }
