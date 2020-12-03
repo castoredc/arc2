@@ -13,6 +13,7 @@ namespace ARC2\Store\Adapter;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\Exception;
+use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 
 /**
  * Doctrine Adapter - Handles database operations using Doctrine Connections.
@@ -88,7 +89,7 @@ class DoctrineAdapter extends AbstractAdapter
 
         $stmt = $this->connection->prepare($sql);
         $result = $stmt->execute();
-        $rows = $result->fetchAllAssociative();
+        $rows = $stmt->fetchAllAssociative();
 
         return $rows;
     }
@@ -104,7 +105,7 @@ class DoctrineAdapter extends AbstractAdapter
         $row = false;
         $stmt = $this->connection->prepare($sql);
         $result = $stmt->execute();
-        $rows = $result->fetchAllAssociative();
+        $rows = $stmt->fetchAllAssociative();
         if (0 < \count($rows)) {
             $row = \array_values($rows)[0];
         }
@@ -140,7 +141,28 @@ class DoctrineAdapter extends AbstractAdapter
 
     public function getServerInfo()
     {
+        $connection = $this->connection->getWrappedConnection();
+
+        // Automatic platform version detection.
+        if ($connection instanceof ServerInfoAwareConnection && ! $connection->requiresQueryForServerVersion()) {
+            return $connection->getServerVersion();
+        }
+
+        // Unable to detect platform version.
         return null;
+    }
+
+    public function getServerVersion()
+    {
+        $res = \preg_match(
+            "/([0-9]+)\.([0-9]+)\.([0-9]+)/",
+            $this->getServerInfo(),
+            $matches
+        );
+
+        return 1 == $res
+            ? \sprintf('%02d-%02d-%02d', $matches[1], $matches[2], $matches[3])
+            : '00-00-00';
     }
 
     public function getErrorCode()
@@ -169,7 +191,7 @@ class DoctrineAdapter extends AbstractAdapter
         try {
             $stmt = $this->connection->prepare($sql);
             $result = $stmt->execute();
-            $rowCount = \count($result->fetchAllAssociative());
+            $rowCount = \count($stmt->fetchAllAssociative());
             return $rowCount;
         } catch (\Doctrine\DBAL\Exception $e) {
             $this->errors[] = $e->getMessage();
